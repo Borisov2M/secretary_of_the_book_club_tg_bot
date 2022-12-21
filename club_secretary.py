@@ -9,9 +9,11 @@ bot = telebot.TeleBot('5666639146:AAH9H_x6TfmhITv8UAjb5rG3RzJTTPToTjs') # Соз
 
 global name_list_path
 global book_list_path
+global rule_book_path
 global meeting_number_path
 
 name_list_path = r'D:\Drafts\tg_bot\name_list.txt'
+rule_book_path = r'D:\Drafts\tg_bot\rule_book.txt'
 book_list_path = r'D:\Drafts\tg_bot\book_list.txt'
 meeting_number_path = r'D:\Drafts\tg_bot\meeting_number.txt'
 
@@ -143,6 +145,15 @@ def view_book_list(m, res=False):
     bot.send_message(m.chat.id, list_book_message)
 #*******************************************************************************
 
+@bot.message_handler(commands=["rule_book"])
+def view_member_list(m, res=False):
+    rule_book_message = 'Список правил клуба:\n'
+    with open(rule_book_path, 'r', encoding='utf-8') as rule_book_object:
+        for rule in rule_book_object:
+            rule_book_message += '     ' + rule
+    
+    bot.send_message(m.chat.id, rule_book_message)
+
 @bot.message_handler(commands=["hello","привет"])
 def hello(m, res=False):
     t = time.localtime() 
@@ -168,6 +179,7 @@ def help(m, res=False):
     message += '/add_book - добавить книгу\n'
     message += '/delete_book - удалить книгу\n'
     message += '/books_list - показать список книг\n'
+    message += '/rule_book - показать книгу правил клуба\n'
     message += '/hello - поздороваться\n'
     message += '/help - подсказка'
     bot.send_message(m.chat.id, message)
