@@ -8,14 +8,16 @@ from telebot import types
 bot = telebot.TeleBot('5666639146:AAH9H_x6TfmhITv8UAjb5rG3RzJTTPToTjs') # Создаем экземпляр бота
 
 global name_list_path
+global book_list_path
 global meeting_number_path
 
 name_list_path = r'D:\Drafts\tg_bot\name_list.txt'
+book_list_path = r'D:\Drafts\tg_bot\book_list.txt'
 meeting_number_path = r'D:\Drafts\tg_bot\meeting_number.txt'
 
 #*********************** Работа с членами книжного клуба ***********************
 #-- Рандомизация списка членов клуба для создания очередности предложения книг -
-@bot.message_handler(commands=["random"])
+@bot.message_handler(commands=["randomize_members"])
 def randomize_names(m, res=False):
     message = ''
     name_list = []
@@ -44,7 +46,7 @@ def randomize_names(m, res=False):
 #-------------------------------------------------------------------------------
 
 #---------------------- Вывод списка членов книжного клуба ---------------------
-@bot.message_handler(commands=["view"])
+@bot.message_handler(commands=["members_list"])
 def view_member_list(m, res=False):
     list_name_message = 'Список членов клуба:\n'
     with open(name_list_path, 'r') as name_file_object:
@@ -55,49 +57,91 @@ def view_member_list(m, res=False):
 #-------------------------------------------------------------------------------
 
 #------------------- Добавление новых членов книжного клуба --------------------
-@bot.message_handler(commands=["add"])
+@bot.message_handler(commands=["add_neofit"])
 def neofit(m, res=False):
+    bot.send_message(m.chat.id, "Ввод начинается с символа '/'")
     sent = bot.send_message(m.chat.id, 'Введите имя новопосвященного!')
     bot.register_next_step_handler(sent, add_neofit)
 
 def add_neofit(m, res=False):
-    with open(name_list_path, 'a') as name_file_object:
-        name_file_object.write('\n' + m.text)
-    message = 'Неофит добавлен в список'
-    bot.send_message(m.chat.id, message)
+    if m.from_user.id:
+        with open(name_list_path, 'a') as name_file_object:
+            name_file_object.write(m.text[1:] + '\n')
+        bot.send_message(m.chat.id, 'Неофит добавлен в список')
 #-------------------------------------------------------------------------------
 
 #------------------- Удаление из списка членов книжного клуба ------------------
-@bot.message_handler(commands=["delete"])
+@bot.message_handler(commands=["delete_member"])
 def member(m, res=False):
+    bot.send_message(m.chat.id, "Ввод начинается с символа '/'")
     view_member_list(m)
     sent = bot.send_message(m.chat.id, 'Введите имя отступника!')
-    bot.register_next_step_handler(sent, delete_member)
+    bot.register_next_step_handler(sent, member_delete)
 
-def delete_member(m, res=False):
+def member_delete(m, res=False):
     with open(name_list_path, 'r') as name_file_object: 
+        
         name_list = name_file_object.readlines()
-
+    delete_name = m.text[1:]
+        
     with open(name_list_path, 'w') as name_file_object:
         for name in name_list:
-            if name != m.text:
+            if '\n' in name:
+                plug = re.sub('\n', '', name)
+            else:
+                plug = name
+
+            if plug != m.text[1:] :
                 name_file_object.write(name)
-                
-    message = 'Отступник стерт из хроник!'
-    bot.send_message(m.chat.id, message)
+    
+    bot.send_message(m.chat.id, 'Отступник стерт из хроник!')
 #-------------------------------------------------------------------------------
 #*******************************************************************************
 
-@bot.message_handler(commands=["booklist"])
-def neofit(m, res=False):
+#*************************** Блотк работы с книгами ****************************
+@bot.message_handler(commands=["add_book"])
+def new_book(m, res=False):
+    bot.send_message(m.chat.id, "Ввод начинается с символа '/'")
     sent = bot.send_message(m.chat.id, 'Введите название книги!')
     bot.register_next_step_handler(sent, add_book_name)
 
 def add_book_name(m, res=False):
-    with open(name_list_path, 'a') as book_file_object:
-        book_file_object.write('\n' + m.from_user.username + ': ' + m.text)
-    message = 'Книга добавлена в список'
-    bot.send_message(m.chat.id, message)
+    with open(book_list_path, 'a') as book_file_object:
+        book_file_object.write(m.from_user.username  + ': ' + m.text[1:] + '\n')
+    bot.send_message(m.chat.id,'Книга поставлена на полку')
+
+@bot.message_handler(commands=["delete_book"])
+def book(m, res=False):
+    bot.send_message(m.chat.id, "Ввод начинается с символа '/'")
+    view_book_list(m)
+    sent = bot.send_message(m.chat.id, 'Введите название книги!')
+    bot.register_next_step_handler(sent, book_delete)
+
+def book_delete(m, res=False):
+    with open(book_list_path, 'r') as book_file_object:     
+        book_list = book_file_object.readlines()
+        
+    with open(book_list_path, 'w') as book_file_object:
+        for book in book_list:
+            if '\n' in book:
+                plug = re.sub('\n', '', book)
+            else:
+                plug = book
+
+            if plug != (m.from_user.username + ': ' + m.text[1:]) :
+                book_file_object.write(book)
+
+    bot.send_message(m.chat.id, 'Книга убрана из библиотеки!')
+
+@bot.message_handler(commands=["books_list"])
+def view_book_list(m, res=False):
+    list_book_message = 'Список прочитанных книг:\n'
+    with open(book_list_path, 'r') as book_file_object:
+        for name in book_file_object:
+            list_book_message += '     - ' + name
+    
+    bot.send_message(m.chat.id, list_book_message)
+#*******************************************************************************
 
 @bot.message_handler(commands=["hello","привет"])
 def hello(m, res=False):
@@ -105,28 +149,27 @@ def hello(m, res=False):
     current_time = int(time.strftime("%H", t))
 
     if current_time in range(4, 12):
-        message = ('Хорошее утро, ' + m.from_user.first_name + ' ' 
-                                    + m.from_user.last_name +'!')
+        message = ('Хорошее утро, ' + str(m.from_user.username) + '!')
     elif current_time in range(12, 18):
-        message = ('Хороший день, ' + m.from_user.first_name + ' ' 
-                                    + m.from_user.last_name +'!')
+        message = ('Хороший день, ' + str(m.from_user.username) + '!')
     elif current_time in range(18, 19):
-        message = ('Хороший вечер, ' + m.from_user.first_name + ' ' 
-                                     + m.from_user.last_name +'!')
+        message = ('Хороший вечер, ' + str(m.from_user.username) + '!')
     else:
-        message = ('Хорошая ночь, ' + m.from_user.first_name + ' ' 
-                                    + m.from_user.last_name +'!')
+        message = ('Хорошая ночь, ' + str(m.from_user.username) + '!')
 
     bot.send_message(m.chat.id, message)
 
-@bot.message_handler(commands=["help", "что_ты_можешь"])
+@bot.message_handler(commands=["help", "подсказка"])
 def help(m, res=False):
-    message = '/view - показать список членов клуба\n'
-    message += '/random - жребий очередности выбора\n'
-    message += '/add - добавить неофита\n'
-    message += '/delete - удалить члена клуба\n'
+    message = '/randomize_members - жребий очередности выбора\n'
+    message += '/add_neofit - добавить неофита\n'
+    message += '/delete_member - удалить члена клуба\n'
+    message += '/members_list - показать список членов клуба\n'
+    message += '/add_book - добавить книгу\n'
+    message += '/delete_book - удалить книгу\n'
+    message += '/books_list - показать список книг\n'
     message += '/hello - поздороваться\n'
-    message += '/help - список команд'
+    message += '/help - подсказка'
     bot.send_message(m.chat.id, message)
 
 # Запускаем бота
